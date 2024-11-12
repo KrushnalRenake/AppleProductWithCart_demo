@@ -1,0 +1,47 @@
+User prompt: Create an application based on given text file
+User attached information: I want to create an SAP Fiori application that satisfies the requirements from the following user story:
+
+Description
+
+As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.
+
+Customer Description
+
+Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods. Common attributes of an Apple product might include:
+
+Product ID: A unique identifier for the product.
+Name: The name of the product (e.g., iPhone 14, MacBook Air).
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase. A typical shopping cart has the following attributes:
+
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Acceptance Criteria
+
+Scenario 1: List All Apple Products
+Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.
+
+The list of available products should include: Product ID, Name, Price, and Availability.
+
+Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.
+
+Scenario 2: Add Product to Cart
+Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.
+
+The shopping cart should update to reflect the new product, showing the updated total price and quantity.
+
+Scenario 3: View Shopping Cart
+Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.
+
+The shopping cart details will include:
+
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary

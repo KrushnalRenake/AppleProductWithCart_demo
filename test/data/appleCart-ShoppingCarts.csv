@@ -1,0 +1,8 @@
+ID;cartID;productList;totalPrice;quantity;appleProducts_ID
+8c2905d1-4a5f-447c-8093-f502d5f13cc0;CART001;iPhone 14, MacBook Air;1799.98;2;62d9be98-d913-4191-8e35-df1012d0a92d
+b5862cf3-2ec8-487f-bed9-55bc1f60d868;CART002;iPad Pro;1099.99;1;42b41cba-29df-4de4-8c7a-7cd66a72eda4
+393ef586-9c8c-4a68-ac29-a74e00aba17a;CART003;Apple Watch Series 7, AirPods Pro;649.98;2;b9ea18b0-8cc3-4f58-9ce0-30f4345574dd
+9bf7d7a8-3b62-40b9-83bd-4a41e12cb65e;CART004;MacBook Air, iPad Pro;2099.98;2;da57755e-1819-4107-8430-3d5934cadcdb
+7509e316-3162-43bb-a40b-799494958273;CART005;iPhone 14, Apple Watch Series 7;1199.98;2;62d9be98-d913-4191-8e35-df1012d0a92d
+c4d3dcf1-13fa-4560-8fc8-344cd8912fa4;CART006;AirPods Pro;249.99;1;a8f16978-98eb-4ea7-b18e-17b1028877db
+aa3136a2-130a-4637-ac08-b96704d5a4eb;CART007;iPhone 14, MacBook Air, Apple Watch Series 7;2199.97;3;62d9be98-d913-4191-8e35-df1012d0a92d

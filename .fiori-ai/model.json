@@ -1,0 +1,264 @@
+{
+    "namespace": "appleCart",
+    "entities": [
+        {
+            "name": "AppleProducts",
+            "label": "Apple Product",
+            "associations": [
+                {
+                    "name": "ShoppingCarts",
+                    "target": "ShoppingCarts",
+                    "multiplicity": "many",
+                    "backAssociation": "appleProducts"
+                }
+            ],
+            "labelPlural": "Apple Products",
+            "elements": [
+                {
+                    "name": "ID",
+                    "type": "UUID",
+                    "key": true,
+                    "label": ""
+                },
+                {
+                    "name": "productID",
+                    "type": "String(50)",
+                    "label": "Product ID",
+                    "additionalInfo": "A unique identifier for the product.",
+                    "essentialElement": true,
+                    "semanticKey": true
+                },
+                {
+                    "name": "name",
+                    "type": "String(100)",
+                    "label": "Name",
+                    "additionalInfo": "The name of the product (e.g., iPhone 14, MacBook Air).",
+                    "essentialElement": true,
+                    "values": [
+                        "iPhone 14",
+                        "MacBook Air"
+                    ],
+                    "hasFixedValuesList": false,
+                    "hasColorsOrCriticality": false,
+                    "reason": "The name of a product is usually neutral and does not have an inherent positive or negative connotation."
+                },
+                {
+                    "name": "price",
+                    "type": "Decimal",
+                    "label": "Price",
+                    "additionalInfo": "The cost of the product.",
+                    "essentialElement": true
+                },
+                {
+                    "name": "description",
+                    "type": "String(255)",
+                    "label": "Description",
+                    "additionalInfo": "A brief overview of the product features and specifications.",
+                    "essentialElement": false
+                },
+                {
+                    "name": "availability",
+                    "type": "String(50)",
+                    "label": "Availability",
+                    "additionalInfo": "Information on whether the product is in stock or out of stock.",
+                    "essentialElement": true,
+                    "values": [
+                        "in stock",
+                        "out of stock"
+                    ],
+                    "hasFixedValuesList": true,
+                    "hasColorsOrCriticality": true,
+                    "reason": "The availability of a product can be considered good or bad. 'In stock' is generally positive, while 'out of stock' is negative.",
+                    "mapping": [
+                        {
+                            "value": "in stock",
+                            "colorOrCriticality": "positive",
+                            "reason": "'In stock' indicates that the product is available for purchase, which is a positive condition."
+                        },
+                        {
+                            "value": "out of stock",
+                            "colorOrCriticality": "negative",
+                            "reason": "'Out of stock' indicates that the product is not available for purchase, which is a negative condition."
+                        }
+                    ],
+                    "criticalities": [
+                        3,
+                        1
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ShoppingCarts",
+            "label": "Shopping Cart",
+            "associations": [
+                {
+                    "name": "appleProducts",
+                    "target": "AppleProducts",
+                    "multiplicity": "one",
+                    "isComposition": false
+                }
+            ],
+            "labelPlural": "Shopping Carts",
+            "elements": [
+                {
+                    "name": "ID",
+                    "type": "UUID",
+                    "key": true,
+                    "label": ""
+                },
+                {
+                    "name": "cartID",
+                    "type": "String(50)",
+                    "label": "Cart ID",
+                    "additionalInfo": "A unique identifier for the shopping cart.",
+                    "essentialElement": true,
+                    "semanticKey": true
+                },
+                {
+                    "name": "productList",
+                    "type": "String(255)",
+                    "label": "Product List",
+                    "additionalInfo": "A list of products added to the cart.",
+                    "essentialElement": true
+                },
+                {
+                    "name": "totalPrice",
+                    "type": "Decimal",
+                    "label": "Total Price",
+                    "additionalInfo": "The total cost of all items in the cart.",
+                    "essentialElement": true
+                },
+                {
+                    "name": "quantity",
+                    "type": "Integer",
+                    "label": "Quantity",
+                    "additionalInfo": "The number of each product added to the cart.",
+                    "essentialElement": true
+                }
+            ]
+        }
+    ],
+    "service": {
+        "name": "appleCartSrv",
+        "path": "srv/service.cds"
+    },
+    "applications": [
+        {
+            "pages": [
+                {
+                    "type": "ListReport",
+                    "entityType": "AppleProducts",
+                    "listReportContent": {
+                        "loadDataOnAppLaunch": "Enabled",
+                        "tables": [
+                            {
+                                "title": "Available Apple Products",
+                                "id": "AppleProductsTable",
+                                "baseEntityType": "AppleProducts",
+                                "columns": [
+                                    "productID",
+                                    "name",
+                                    "price",
+                                    "availability"
+                                ]
+                            },
+                            {
+                                "title": "Shopping Cart Summary",
+                                "id": "ShoppingCartSummary",
+                                "baseEntityType": "AppleProducts",
+                                "columns": [
+                                    "ShoppingCarts/totalPrice",
+                                    "ShoppingCarts/quantity"
+                                ]
+                            }
+                        ],
+                        "filters": []
+                    }
+                },
+                {
+                    "type": "ObjectPage",
+                    "entityType": "AppleProducts",
+                    "objectPageContent": {
+                        "tableSectionAssociations": [
+                            "ShoppingCarts"
+                        ],
+                        "sections": [
+                            {
+                                "title": "Product Details",
+                                "id": "productDetails",
+                                "fields": [
+                                    "productID",
+                                    "name",
+                                    "price",
+                                    "description",
+                                    "availability"
+                                ]
+                            },
+                            {
+                                "title": "Shopping Carts",
+                                "id": "shoppingCarts",
+                                "isTableSection": true,
+                                "fields": [
+                                    "ShoppingCarts/cartID",
+                                    "ShoppingCarts/productList",
+                                    "ShoppingCarts/totalPrice",
+                                    "ShoppingCarts/quantity"
+                                ]
+                            }
+                        ],
+                        "tabs": [
+                            {
+                                "title": "Overview",
+                                "id": "overviewTab",
+                                "subsections": [
+                                    "productDetails",
+                                    "shoppingCarts"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": "ObjectPage",
+                    "entityType": "ShoppingCarts",
+                    "objectPageContent": {
+                        "tableSectionAssociations": [],
+                        "sections": [
+                            {
+                                "title": "Cart Details",
+                                "id": "cartDetails",
+                                "isTableSection": false,
+                                "fields": []
+                            },
+                            {
+                                "title": "Product List",
+                                "id": "productList",
+                                "isTableSection": true,
+                                "fields": []
+                            },
+                            {
+                                "title": "Summary",
+                                "id": "summary",
+                                "isTableSection": false,
+                                "fields": []
+                            }
+                        ],
+                        "tabs": [
+                            {
+                                "title": "Cart Overview",
+                                "id": "cartOverview",
+                                "subsections": [
+                                    "cartDetails",
+                                    "productList",
+                                    "summary"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
+            "name": "appleCartApp"
+        }
+    ]
+}

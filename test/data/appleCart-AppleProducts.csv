@@ -1,0 +1,6 @@
+ID;productID;name;price;description;availability_code
+62d9be98-d913-4191-8e35-df1012d0a92d;AP001;iPhone 14;799.99;The latest iPhone with A15 Bionic chip and advanced camera system.;instock
+da57755e-1819-4107-8430-3d5934cadcdb;AP002;MacBook Air;999.99;Lightweight laptop with M1 chip and 18-hour battery life.;instock
+42b41cba-29df-4de4-8c7a-7cd66a72eda4;AP003;iPad Pro;1099.99;High-performance tablet with Liquid Retina display and M1 chip.;outofstock
+b9ea18b0-8cc3-4f58-9ce0-30f4345574dd;AP004;Apple Watch Series 7;399.99;Smartwatch with larger display and advanced health features.;instock
+a8f16978-98eb-4ea7-b18e-17b1028877db;AP005;AirPods Pro;249.99;Noise-cancelling wireless earbuds with spatial audio.;outofstock

@@ -1,0 +1,1385 @@
+2024-11-12T12:48:20.167Z [info] Project generation uses model: "gpt-4o", version: "latest"
+2024-11-12T12:48:20.167Z [info] 1/8: Generate CAP model via LLM
+2024-11-12T12:48:24.182Z [info] 
+==========LLM call for step "extractAppSkeleton":==========
+You help the user building a Fiori Elements application described in the user input.
+
+A Fiori Elements application typically starts with a ListReport page showing the data of the base entity of the application in a table.
+Details of a specific table row are shown in the ObjectPage. This first ObjectPage is therefore based on the base entity of the application.
+An ObjectPage can contain one or more table sections based on to-many associations of its entity type.
+The details of a table section row can be shown in an another ObjectPage based on the associations target entity.
+
+Your task is to find the entities (with their to-many associations) as well as the ObjectPages (with the to-many associations they use in table sections) described in the user input below.
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "entities": {
+      "type": "array",
+      "description": "Define all entities and their to-many associations; entity properties will be determined later",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "UpperCamelCase, no spaces, plural, e.g. 'Orders'"
+          },
+          "label": {
+            "type": "string",
+            "description": "max two words, singular"
+          },
+          "associations": {
+            "type": "array",
+            "description": "Define to-many associations between entities",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string",
+                  "description": "Points to existing entity, value is entities.name"
+                }
+              },
+              "required": [
+                "name",
+                "target"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "labelPlural": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "associations",
+          "labelPlural"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "baseEntity": {
+      "type": "string",
+      "description": "base entity of ListReport page (if present) and first ObjectPage"
+    },
+    "noListReportPage": {
+      "type": "boolean",
+      "description": "true: no ListReport page will generated, e.g. for applications which start with an (input enabled) Object Page to enter data"
+    },
+    "objectPages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "Entity that the ObjectPage is based on, the first ObjectPage is always based on base entity"
+          },
+          "tableSectionsAssociations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "to-many associations of page entity for table sections shown in the ObjectPage"
+          }
+        },
+        "required": [
+          "entityType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "namespace": {
+      "type": "string",
+      "description": "lowerCamelCase, no spaces allowed"
+    },
+    "applicationName": {
+      "type": "string",
+      "description": "lowerCamelCase, no spaces allowed"
+    },
+    "userInputKind": {
+      "enum": [
+        "UserInterfaceFirst",
+        "DataModelFirst"
+      ],
+      "description": "use 'UserInterfaceFirst' if User input describes the app based on the user interface, i.e. how List Report and Object Pages should look like; use 'DataModelFirst' if User input describes the app based on its data model, i.e. its entities, their elements and associations"
+    }
+  },
+  "required": [
+    "entities",
+    "baseEntity",
+    "objectPages",
+    "namespace",
+    "applicationName",
+    "userInputKind"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+User prompt: Create an application based on given text file
+User attached information: I want to create an SAP Fiori application that satisfies the requirements from the following user story:
+
+Description
+
+As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.
+
+Customer Description
+
+Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods. Common attributes of an Apple product might include:
+
+Product ID: A unique identifier for the product.
+Name: The name of the product (e.g., iPhone 14, MacBook Air).
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase. A typical shopping cart has the following attributes:
+
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Acceptance Criteria
+
+Scenario 1: List All Apple Products
+Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.
+
+The list of available products should include: Product ID, Name, Price, and Availability.
+
+Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.
+
+Scenario 2: Add Product to Cart
+Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.
+
+The shopping cart should update to reflect the new product, showing the updated total price and quantity.
+
+Scenario 3: View Shopping Cart
+Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.
+
+The shopping cart details will include:
+
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary
+</UserInput>
+
+----------Response:----------
+```json
+{
+  "entities": [
+    {
+      "name": "AppleProducts",
+      "label": "Apple Product",
+      "associations": [
+        {
+          "name": "ShoppingCarts",
+          "target": "ShoppingCarts"
+        }
+      ],
+      "labelPlural": "Apple Products"
+    },
+    {
+      "name": "ShoppingCarts",
+      "label": "Shopping Cart",
+      "associations": [
+        {
+          "name": "ProductList",
+          "target": "AppleProducts"
+        }
+      ],
+      "labelPlural": "Shopping Carts"
+    }
+  ],
+  "baseEntity": "AppleProducts",
+  "noListReportPage": false,
+  "objectPages": [
+    {
+      "entityType": "AppleProducts",
+      "tableSectionsAssociations": [
+        "ShoppingCarts"
+      ]
+    },
+    {
+      "entityType": "ShoppingCarts",
+      "tableSectionsAssociations": [
+        "ProductList"
+      ]
+    }
+  ],
+  "namespace": "appleCart",
+  "applicationName": "appleCartApp",
+  "userInputKind": "UserInterfaceFirst"
+}
+```
+2024-11-12T12:48:24.185Z [info] Step "switchBasedOnAppSkeleton": case 0 blocked! Evaluation details:
+ - JSONPath "$.model.applications[0].pages[0]" : [{"type":"ListReport","entityType":"AppleProducts"}]
+2024-11-12T12:48:24.185Z [info] Step "switchBasedOnAppSkeleton": case 1 blocked! Evaluation details:
+ - JSONPath "$.model.applications[0].pages[0].type" : ["ListReport"]
+2024-11-12T12:48:24.186Z [info] Step "switchBasedOnAppSkeleton": case 2 passed! Evaluation details:
+ - JSONPath "$.userInput.imageCount" : [0]
+2024-11-12T12:48:24.186Z [info] Step "runDataModelFirst": workflow "givenSkeletonExtractDataModelFirst" started
+"
+2024-11-12T12:48:30.448Z [info] 
+==========LLM call for step "extractEntitiesProperties":==========
+You help the user refining the DataModel for a Fiori Elements application described in the user input.
+
+The DataModel consists of the following entities and associations:
+- entity "AppleProducts" (with to-many associations to "ShoppingCarts")
+- entity "ShoppingCarts" (with to-one association to "AppleProducts")
+
+Your task is to find the properties for each entity.
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entityName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "camelCase, no spaces"
+          },
+          "type": {
+            "type": "string",
+            "description": "Allowed values: String(50), Boolean, Integer, Decimal, Double, Date, Time, DateTime, Timestamp; String length can vary - i.e. String(20)"
+          },
+          "key": {
+            "type": "boolean",
+            "description": "max. one optional key per entity, only if this element is a semantic key and can uniquely identify the instance"
+          },
+          "essentialElement": {
+            "type": "boolean",
+            "description": "'true' only if element is marked as essential'"
+          },
+          "additionalInfo": {
+            "type": "string",
+            "description": "All additional information from user input, e.g. user description, example values; also consider referenced parts in the user input"
+          }
+        },
+        "required": [
+          "entityName",
+          "name",
+          "type",
+          "additionalInfo"
+        ],
+        "additionalProperties": false
+      },
+      "description": "At least 5 realistic elements (unless explicitly specified)"
+    }
+  },
+  "required": [
+    "elements"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+User prompt: Create an application based on given text file
+User attached information: I want to create an SAP Fiori application that satisfies the requirements from the following user story:
+
+Description
+
+As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.
+
+Customer Description
+
+Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods. Common attributes of an Apple product might include:
+
+Product ID: A unique identifier for the product.
+Name: The name of the product (e.g., iPhone 14, MacBook Air).
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase. A typical shopping cart has the following attributes:
+
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Acceptance Criteria
+
+Scenario 1: List All Apple Products
+Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.
+
+The list of available products should include: Product ID, Name, Price, and Availability.
+
+Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.
+
+Scenario 2: Add Product to Cart
+Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.
+
+The shopping cart should update to reflect the new product, showing the updated total price and quantity.
+
+Scenario 3: View Shopping Cart
+Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.
+
+The shopping cart details will include:
+
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary
+</UserInput>
+
+----------Response:----------
+```json
+{
+  "elements": [
+    {
+      "entityName": "AppleProducts",
+      "name": "productID",
+      "type": "String(50)",
+      "key": true,
+      "essentialElement": true,
+      "additionalInfo": "A unique identifier for the product."
+    },
+    {
+      "entityName": "AppleProducts",
+      "name": "name",
+      "type": "String(100)",
+      "essentialElement": true,
+      "additionalInfo": "The name of the product (e.g., iPhone 14, MacBook Air)."
+    },
+    {
+      "entityName": "AppleProducts",
+      "name": "price",
+      "type": "Decimal",
+      "essentialElement": true,
+      "additionalInfo": "The cost of the product."
+    },
+    {
+      "entityName": "AppleProducts",
+      "name": "description",
+      "type": "String(255)",
+      "essentialElement": false,
+      "additionalInfo": "A brief overview of the product features and specifications."
+    },
+    {
+      "entityName": "AppleProducts",
+      "name": "availability",
+      "type": "Boolean",
+      "essentialElement": true,
+      "additionalInfo": "Information on whether the product is in stock or out of stock."
+    },
+    {
+      "entityName": "ShoppingCarts",
+      "name": "cartID",
+      "type": "String(50)",
+      "key": true,
+      "essentialElement": true,
+      "additionalInfo": "A unique identifier for the shopping cart."
+    },
+    {
+      "entityName": "ShoppingCarts",
+      "name": "productList",
+      "type": "String(255)",
+      "essentialElement": true,
+      "additionalInfo": "A list of products added to the cart."
+    },
+    {
+      "entityName": "ShoppingCarts",
+      "name": "totalPrice",
+      "type": "Decimal",
+      "essentialElement": true,
+      "additionalInfo": "The total cost of all items in the cart."
+    },
+    {
+      "entityName": "ShoppingCarts",
+      "name": "quantity",
+      "type": "Integer",
+      "essentialElement": true,
+      "additionalInfo": "The number of each product added to the cart."
+    }
+  ]
+}
+```
+2024-11-12T12:48:34.666Z [info] 
+==========LLM call for step "extractPropertyDetails":==========
+Here is a list of property names, each with the property description that was extracted from previous user input:
+
+AppleProducts_productID: A unique identifier for the product.
+AppleProducts_name: The name of the product (e.g., iPhone 14, MacBook Air).
+AppleProducts_price: The cost of the product.
+AppleProducts_description: A brief overview of the product features and specifications.
+AppleProducts_availability: Information on whether the product is in stock or out of stock.
+ShoppingCarts_cartID: A unique identifier for the shopping cart.
+ShoppingCarts_productList: A list of products added to the cart.
+ShoppingCarts_totalPrice: The total cost of all items in the cart.
+ShoppingCarts_quantity: The number of each product added to the cart.
+
+For each property analyze the description with respect to what property values can be expected.
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hasFixedValuesList": {
+            "type": "boolean",
+            "description": "Only limited list of values expected, e.g. property is representing e.g. a type, status, category, unit, organization"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specific property values mentioned as part of the description. Those could be possible values or example values. Don't make up or invent any values"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "properties"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+----------Response:----------
+```json
+{
+  "properties": [
+    {
+      "name": "AppleProducts_productID",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "AppleProducts_name",
+      "hasFixedValuesList": false,
+      "values": ["iPhone 14", "MacBook Air"]
+    },
+    {
+      "name": "AppleProducts_price",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "AppleProducts_description",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "AppleProducts_availability",
+      "hasFixedValuesList": true,
+      "values": ["in stock", "out of stock"]
+    },
+    {
+      "name": "ShoppingCarts_cartID",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "ShoppingCarts_productList",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "ShoppingCarts_totalPrice",
+      "hasFixedValuesList": false,
+      "values": []
+    },
+    {
+      "name": "ShoppingCarts_quantity",
+      "hasFixedValuesList": false,
+      "values": []
+    }
+  ]
+}
+```
+2024-11-12T12:48:34.667Z [info] Step "switchSimpleOrComplexApp": case 0 blocked! Evaluation details:
+ - JSONPath "$.model.applications[0].pages[2]" : [{"type":"ObjectPage","entityType":"ShoppingCarts","objectPageContent":{"tableSectionAssociations":[]}}]
+ - JSONPath "$.userInput.lineCount" : [49]
+2024-11-12T12:48:34.667Z [info] Step "switchSimpleOrComplexApp": no condition met - running default steps
+2024-11-12T12:48:34.667Z [info] Step "runFlowForComplexApp": workflow "givenSkeletonExtractComplexApp" started
+"
+2024-11-12T12:48:43.633Z [info] 
+==========LLM call for classifier:==========
+The user input below describes a Fiori Elements application with a ListReport page and multiple ObjectPages.
+ListReport page shows the data of the specific business object as a list or table. ObjectPage shows details of a specific business object instance.
+Your task is to classify the lines based on the same business object representation to the following categories, one line can refer only to a single category:
+ - LIST_REPORT_APPLEPRODUCTS: line describes the ListReport page for "AppleProducts"
+ - OBJECT_PAGE_APPLEPRODUCTS: line describes the ObjectPage for "AppleProducts" with a table of "ShoppingCarts"
+ - OBJECT_PAGE_SHOPPINGCARTS: line describes the ObjectPage for "ShoppingCarts"
+ - NONE: line is not describing any ListReport page or ObjectPage
+
+Return your findings as csv file with columns "lineContent" and "category"!
+
+<UserInput>
+User prompt: Create an application based on given text file
+User attached information: I want to create an SAP Fiori application that satisfies the requirements from the following user story:
+
+Description
+
+As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.
+
+Customer Description
+
+Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods.
+Common attributes of an Apple product might include:
+
+Product ID: A unique identifier for the product.
+Name: The name of the product (e.g., iPhone 14, MacBook Air).
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase.
+A typical shopping cart has the following attributes:
+
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Acceptance Criteria
+
+Scenario 1: List All Apple Products
+Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.
+
+The list of available products should include: Product ID, Name, Price, and Availability.
+
+Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.
+
+Scenario 2: Add Product to Cart
+Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.
+
+The shopping cart should update to reflect the new product, showing the updated total price and quantity.
+
+Scenario 3: View Shopping Cart
+Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.
+
+The shopping cart details will include:
+
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary
+</UserInput>
+
+----------Response:----------
+Here is the classification of the lines based on the given categories:
+
+```csv
+lineContent,category
+"As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.",NONE
+"Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods.",NONE
+"Common attributes of an Apple product might include:",NONE
+"Product ID: A unique identifier for the product.",NONE
+"Name: The name of the product (e.g., iPhone 14, MacBook Air).",NONE
+"Price: The cost of the product.",NONE
+"Description: A brief overview of the product features and specifications.",NONE
+"Availability: Information on whether the product is in stock or out of stock.",NONE
+"Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase.",NONE
+"A typical shopping cart has the following attributes:",NONE
+"Cart ID: A unique identifier for the shopping cart.",NONE
+"Product List: A list of products added to the cart.",NONE
+"Total Price: The total cost of all items in the cart.",NONE
+"Quantity: The number of each product added to the cart.",NONE
+"Scenario 1: List All Apple Products",NONE
+"Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.",LIST_REPORT_APPLEPRODUCTS
+"The list of available products should include: Product ID, Name, Price, and Availability.",LIST_REPORT_APPLEPRODUCTS
+"Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.",LIST_REPORT_APPLEPRODUCTS
+"Scenario 2: Add Product to Cart",NONE
+"Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.",OBJECT_PAGE_APPLEPRODUCTS
+"The shopping cart should update to reflect the new product, showing the updated total price and quantity.",OBJECT_PAGE_APPLEPRODUCTS
+"Scenario 3: View Shopping Cart",NONE
+"Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.",OBJECT_PAGE_SHOPPINGCARTS
+"The shopping cart details will include:",OBJECT_PAGE_SHOPPINGCARTS
+"Field Name	Tab in App	Section or Field Group",OBJECT_PAGE_SHOPPINGCARTS
+"Cart ID	Cart Overview	Cart Details",OBJECT_PAGE_SHOPPINGCARTS
+"Product Name	Cart Overview	Product List",OBJECT_PAGE_SHOPPINGCARTS
+"Quantity	Cart Overview	Product List",OBJECT_PAGE_SHOPPINGCARTS
+"Price	Cart Overview	Product List",OBJECT_PAGE_SHOPPINGCARTS
+"Total Price	Cart Overview	Summary",OBJECT_PAGE_SHOPPINGCARTS
+```
+
+This CSV file categorizes each line based on the provided categories.
+2024-11-12T12:48:43.634Z [info] Step "loopOverPages": looping over 3 entries
+"
+2024-11-12T12:48:43.634Z [info] Step "loopOverPages" index 0: pageType=ListReport, entityType=AppleProducts
+2024-11-12T12:48:43.634Z [info] Step "ifListReportPage": case 0 passed! Evaluation details:
+ - Variable "pageType" : "ListReport"
+2024-11-12T12:48:45.958Z [info] 
+==========LLM call for step "extractListReport":==========
+A Fiori Elements Application has the following pages:
+ - ListReport page for "AppleProducts"
+ - ObjectPage for "AppleProducts"
+ - ObjectPage for "ShoppingCarts"
+
+Available entities with their associations and elements are:
+Entity "AppleProducts"
+   Properties:
+       productID: A unique identifier for the product.
+       name: The name of the product (e.g., iPhone 14, MacBook Air).
+       price: The cost of the product.
+       description: A brief overview of the product features and specifications.
+       availability: Information on whether the product is in stock or out of stock.
+   Associations:
+       ShoppingCarts: association to many entities ShoppingCarts
+Entity "ShoppingCarts"
+   Properties:
+       cartID: A unique identifier for the shopping cart.
+       productList: A list of products added to the cart.
+       totalPrice: The total cost of all items in the cart.
+       quantity: The number of each product added to the cart.
+   Associations:
+       appleProducts: association to single entity AppleProducts
+
+The user input below describes the details of the ListReport page (i.e. its filters, tables or views with their columns).
+
+Your task is to help the user defining the ListReport page.
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "loadDataOnAppLaunch": {
+      "type": "string",
+      "enum": [
+        "Auto",
+        "Disabled",
+        "Enabled"
+      ],
+      "description": "'Auto': no explicit user input to load the data after start or an explicit user input to set InitialLoad for table to Auto; 'Disabled': An initial load of data does not occur at app start and the user has to actively click the Go button;  'Enabled': An initial load of data occurs automatically after start  (list is visible without pressing the GO Button)."
+    },
+    "tables": {
+      "type": "array",
+      "description": "tables (views) expected in user input",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "baseEntityType": {
+            "type": "string",
+            "description": "base entity type for the table"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "propertyPaths for columns"
+          }
+        },
+        "required": [
+          "title",
+          "baseEntityType",
+          "columns"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "filters": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "propertyPaths for filters specified in user input. If not specified, empty array"
+    }
+  },
+  "required": [
+    "tables"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+"As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items."
+"Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods."
+Common attributes of an Apple product might include:
+Product ID: A unique identifier for the product.
+"Name: The name of the product (e.g., iPhone 14, MacBook Air)."
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase.
+A typical shopping cart has the following attributes:
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Scenario 1: List All Apple Products
+"Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button."
+"The list of available products should include: Product ID, Name, Price, and Availability."
+"Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price."
+Scenario 2: Add Product to Cart
+</UserInput>
+
+----------Response:----------
+```json
+{
+  "loadDataOnAppLaunch": "Enabled",
+  "tables": [
+    {
+      "title": "Available Apple Products",
+      "id": "AppleProductsTable",
+      "baseEntityType": "AppleProducts",
+      "columns": [
+        "productID",
+        "name",
+        "price",
+        "availability"
+      ]
+    },
+    {
+      "title": "Shopping Cart Summary",
+      "id": "ShoppingCartSummary",
+      "baseEntityType": "ShoppingCarts",
+      "columns": [
+        "totalPrice",
+        "quantity"
+      ]
+    }
+  ],
+  "filters": []
+}
+```
+2024-11-12T12:48:45.960Z [info] Step "loopOverPages" index 1: pageType=ObjectPage, entityType=AppleProducts
+2024-11-12T12:48:45.960Z [info] Step "ifListReportPage": case 0 blocked! Evaluation details:
+ - Variable "pageType" : "ObjectPage"
+2024-11-12T12:48:45.960Z [info] Step "ifListReportPage": no condition met - running default steps
+2024-11-12T12:48:48.660Z [info] 
+==========LLM call for step "extractSingleObjectPageOfMany":==========
+The user input below describes a Fiori Elements Application with the following pages:
+ - ListReport page for "AppleProducts"
+ - ObjectPage for "AppleProducts"
+ - ObjectPage for "ShoppingCarts"
+
+Your task is to find the details of the ObjectPage for "AppleProducts".
+The base entity of the ObjectPage is AppleProducts.
+This ObjectPage can contain tabs and/or sections which in turn contain tables and fields.
+It must contain table sections containing data for associated entity "ShoppingCarts" (via association ShoppingCarts);
+
+The underlying data model allows the following propertyPaths:
+ - productID: Product ID (of Apple Product)
+ - name: Name (of Apple Product)
+ - price: Price (of Apple Product)
+ - description: Description (of Apple Product)
+ - availability: Availability (of Apple Product)
+ - ShoppingCarts/cartID: Cart ID (of many associated Shopping Cart)
+ - ShoppingCarts/productList: Product List (of many associated Shopping Cart)
+ - ShoppingCarts/totalPrice: Total Price (of many associated Shopping Cart)
+ - ShoppingCarts/quantity: Quantity (of many associated Shopping Cart)
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isTableSection": {
+            "type": "boolean",
+            "description": "if true, 'fields' represent columns of the table section and propertyPaths need to start with 1:n association"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "propertyPath"
+          }
+        },
+        "required": [
+          "title",
+          "id",
+          "fields"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tabs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "subsections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "list of sections ids relevant for the tab"
+          }
+        },
+        "required": [
+          "title",
+          "id",
+          "subsections"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "sections",
+    "tabs"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+"Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart."
+"The shopping cart should update to reflect the new product, showing the updated total price and quantity."
+Scenario 3: View Shopping Cart
+</UserInput>
+
+----------Response:----------
+```json
+{
+  "sections": [
+    {
+      "title": "Product Details",
+      "id": "productDetails",
+      "fields": [
+        "productID",
+        "name",
+        "price",
+        "description",
+        "availability"
+      ]
+    },
+    {
+      "title": "Shopping Carts",
+      "id": "shoppingCarts",
+      "isTableSection": true,
+      "fields": [
+        "ShoppingCarts/cartID",
+        "ShoppingCarts/productList",
+        "ShoppingCarts/totalPrice",
+        "ShoppingCarts/quantity"
+      ]
+    }
+  ],
+  "tabs": [
+    {
+      "title": "Overview",
+      "id": "overviewTab",
+      "subsections": [
+        "productDetails",
+        "shoppingCarts"
+      ]
+    }
+  ]
+}
+```
+2024-11-12T12:48:48.661Z [info] Step "loopOverPages" index 2: pageType=ObjectPage, entityType=ShoppingCarts
+2024-11-12T12:48:48.662Z [info] Step "ifListReportPage": case 0 blocked! Evaluation details:
+ - Variable "pageType" : "ObjectPage"
+2024-11-12T12:48:48.662Z [info] Step "ifListReportPage": no condition met - running default steps
+2024-11-12T12:48:51.941Z [info] 
+==========LLM call for step "extractSingleObjectPageOfMany":==========
+The user input below describes a Fiori Elements Application with the following pages:
+ - ListReport page for "AppleProducts"
+ - ObjectPage for "AppleProducts"
+ - ObjectPage for "ShoppingCarts"
+
+Your task is to find the details of the ObjectPage for "ShoppingCarts".
+The base entity of the ObjectPage is AppleProducts.
+This ObjectPage can contain tabs and/or sections which in turn contain tables and fields.
+It must contain table sections containing data for associated entity "ShoppingCarts" (via association ShoppingCarts);
+
+The underlying data model allows the following propertyPaths:
+ - cartID: Cart ID (of Shopping Cart)
+ - productList: Product List (of Shopping Cart)
+ - totalPrice: Total Price (of Shopping Cart)
+ - quantity: Quantity (of Shopping Cart)
+ - appleProducts/productID: Product ID (of single associated Apple Product)
+ - appleProducts/name: Name (of single associated Apple Product)
+ - appleProducts/price: Price (of single associated Apple Product)
+ - appleProducts/description: Description (of single associated Apple Product)
+ - appleProducts/availability: Availability (of single associated Apple Product)
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isTableSection": {
+            "type": "boolean",
+            "description": "if true, 'fields' represent columns of the table section and propertyPaths need to start with 1:n association"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "propertyPath"
+          }
+        },
+        "required": [
+          "title",
+          "id",
+          "fields"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tabs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "subsections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "list of sections ids relevant for the tab"
+          }
+        },
+        "required": [
+          "title",
+          "id",
+          "subsections"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "sections",
+    "tabs"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+"Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart."
+The shopping cart details will include:
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary
+</UserInput>
+
+----------Response:----------
+```json
+{
+  "sections": [
+    {
+      "title": "Cart Details",
+      "id": "cartDetails",
+      "isTableSection": false,
+      "fields": [
+        "ShoppingCarts/cartID"
+      ]
+    },
+    {
+      "title": "Product List",
+      "id": "productList",
+      "isTableSection": true,
+      "fields": [
+        "ShoppingCarts/appleProducts/name",
+        "ShoppingCarts/quantity",
+        "ShoppingCarts/appleProducts/price"
+      ]
+    },
+    {
+      "title": "Summary",
+      "id": "summary",
+      "isTableSection": false,
+      "fields": [
+        "ShoppingCarts/totalPrice"
+      ]
+    }
+  ],
+  "tabs": [
+    {
+      "title": "Cart Overview",
+      "id": "cartOverview",
+      "subsections": [
+        "cartDetails",
+        "productList",
+        "summary"
+      ]
+    }
+  ]
+}
+```
+2024-11-12T12:48:51.942Z [info] Step "ifCodeListsPresent": case 0 passed! Evaluation details:
+ - JSONPath "$.model.entities[*].elements[*].values[*]" : ["iPhone 14","MacBook Air","in stock","out of stock"]
+2024-11-12T12:48:55.275Z [info] 
+==========LLM call for step "extractColors":==========
+You help the user creating a Fiori Elements application based on user input describing such an application.
+Your task is to determine whether the entity properties can be considered good and bad in most contexts or are usually neutral. When in doubt, set to neutral.
+
+These are the entity properties and their values:
+Entity: AppleProducts, Property: name, Values: iPhone 14, MacBook Air
+Entity: AppleProducts, Property: availability, Values: in stock, out of stock
+
+If the properties can be considered good and bad, the allowed values for their criticality and the associated colors are:
+   negative: red
+   critical: yellow or orange
+   positive: green
+   neutral:  grey
+
+You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+```json
+{
+  "type": "object",
+  "properties": {
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string"
+          },
+          "hasColorsOrCriticality": {
+            "type": "boolean",
+            "description": "true if the given values of the property can be good or bad, false if they are usually neutral"
+          },
+          "reason": {
+            "type": "string",
+            "description": "detailed explanation why you set hasColorsOrCriticality to this value"
+          },
+          "mapping": {
+            "type": "array",
+            "description": "empty if 'hasColorsOrCriticality' is false",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "value of property"
+                },
+                "colorOrCriticality": {
+                  "type": "string",
+                  "description": "color or criticality associated with value"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "detailed explanation why you set ColorOrCriticality to this value"
+                }
+              },
+              "required": [
+                "value",
+                "colorOrCriticality"
+              ]
+            }
+          }
+        },
+        "required": [
+          "entity",
+          "property"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "properties"
+  ],
+  "additionalProperties": false
+}
+```
+
+Output ONLY the json contents and try to be as accurate as comprehensive as possible.
+
+<UserInput>
+User prompt: Create an application based on given text file
+User attached information: I want to create an SAP Fiori application that satisfies the requirements from the following user story:
+
+Description
+
+As a customer, I want to browse available Apple products and add them to my shopping cart, so that I can easily purchase my desired items.
+
+Customer Description
+
+Apple Product: An Apple product is a device or accessory manufactured by Apple Inc., which can include items such as iPhones, iPads, MacBooks, Apple Watches, and accessories like AirPods. Common attributes of an Apple product might include:
+
+Product ID: A unique identifier for the product.
+Name: The name of the product (e.g., iPhone 14, MacBook Air).
+Price: The cost of the product.
+Description: A brief overview of the product features and specifications.
+Availability: Information on whether the product is in stock or out of stock.
+Shopping Cart: A shopping cart is a virtual cart that allows customers to collect products they wish to purchase. A typical shopping cart has the following attributes:
+
+Cart ID: A unique identifier for the shopping cart.
+Product List: A list of products added to the cart.
+Total Price: The total cost of all items in the cart.
+Quantity: The number of each product added to the cart.
+Acceptance Criteria
+
+Scenario 1: List All Apple Products
+Given I am logged into the Apple Cart application, when I launch the SAP Fiori application to view available products, then I should be able to see a list of all available Apple products without pressing the GO button.
+
+The list of available products should include: Product ID, Name, Price, and Availability.
+
+Next to this list, I would like to see a summary of my shopping cart, including the total number of items and total price.
+
+Scenario 2: Add Product to Cart
+Given I am logged into the Apple Cart application, when I select a specific product from the list of available Apple products, then I should be able to add that product to my shopping cart.
+
+The shopping cart should update to reflect the new product, showing the updated total price and quantity.
+
+Scenario 3: View Shopping Cart
+Given I am logged into the Apple Cart application, when I navigate to my shopping cart, then I should be able to view all products added to the cart.
+
+The shopping cart details will include:
+
+Field Name	Tab in App	Section or Field Group
+Cart ID	Cart Overview	Cart Details
+Product Name	Cart Overview	Product List
+Quantity	Cart Overview	Product List
+Price	Cart Overview	Product List
+Total Price	Cart Overview	Summary
+</UserInput>
+
+
+----------Response:----------
+```json
+{
+  "properties": [
+    {
+      "entity": "AppleProducts",
+      "property": "name",
+      "hasColorsOrCriticality": false,
+      "reason": "The name of a product is usually neutral and does not have an inherent positive or negative connotation."
+    },
+    {
+      "entity": "AppleProducts",
+      "property": "availability",
+      "hasColorsOrCriticality": true,
+      "reason": "The availability of a product can be considered good or bad. 'In stock' is generally positive, while 'out of stock' is negative.",
+      "mapping": [
+        {
+          "value": "in stock",
+          "colorOrCriticality": "positive",
+          "reason": "'In stock' indicates that the product is available for purchase, which is a positive condition."
+        },
+        {
+          "value": "out of stock",
+          "colorOrCriticality": "negative",
+          "reason": "'Out of stock' indicates that the product is not available for purchase, which is a negative condition."
+        }
+      ]
+    }
+  ]
+}
+```
+2024-11-12T12:48:55.276Z [info] 2/8: Build CDS files
+2024-11-12T12:48:55.791Z [info] 3/8: Checking staging project root folder "/home/user/.fioritools/fiori-tools-ai"
+2024-11-12T12:48:56.294Z [info] 4/8: Generating mock data
+2024-11-12T12:49:01.489Z [info] 
+==========LLM call for data generation:==========
+
+For the following list of entities, create data for the empty CSV files.
+Entity "AppleProducts" - Properties:
+    productID: String(50), A unique identifier for the product.
+    name: String(100), The name of the product (e.g., iPhone 14, MacBook Air).
+    price: Decimal, The cost of the product.
+    description: String(255), A brief overview of the product features and specifications.
+    availability: String(50), Information on whether the product is in stock or out of stock.
+
+Entity "ShoppingCarts" - Properties:
+    cartID: String(50), A unique identifier for the shopping cart.
+    productList: String(255), A list of products added to the cart.
+    totalPrice: Decimal, The total cost of all items in the cart.
+    quantity: Integer, The number of each product added to the cart.
+    appleProducts_productID: String(50), productID of associated AppleProducts
+
+Empty CSV files in json format (only generate content for these files!):
+{"AppleProducts.csv":"productID;name;price;description;availability","ShoppingCarts.csv":"cartID;productList;totalPrice;quantity;appleProducts_productID"}
+
+Rules:
+    - Take over the given header line, do not invent new columns!
+    - For a given file, add rows, add '\n' characters before each row but don't break the JSON string
+    - Do not generate rows with same key values, they must be unique!
+    - Make sure that associations match, i.e. a field containing "Name of the associated Customer" must contain an existing Name of entity Customer
+    - Always use ";" as a delimiter in CSV files
+    - The result must be proper JSON format so it can be parsed, don't break JSON strings within, don't add quotes around values.
+    - Create about 5 rows for the first csv, 7 for the second and so on
+    - All values must be realistic with meaningful content, e.g. 'Laptop Screen' and not just placeholder values with incremented numbers like 'Product 1', 'Product 2' etc.
+    
+Use format for values:
+  String(50): string no longer than 50 characters
+  Decimal(3,2): 1.23
+  Integer, Double: only numbers, no special symbols
+    
+For the following fields, use only the supplied allowed values (as they are, don't insert spaces or change case):
+- availability (of AppleProducts): instock, outofstock
+
+Example output (Do NOT include in output!):
+```json
+{"Blogs":"blogID;title;description;createdDateTime;views\nBlog1;Tech Blog;A blog about the latest technology trends.;2023-06-27T14:52:23Z;1000\nBlog2;Fashion Blog;Explore the world of fashion and style.;2023-06-27T14:52:23Z;500","Posts":"postID;title;content;publishDate;likes;comments;blogID\n1;The Future of Artificial Intelligence;Artificial intelligence is shaping the future of technology.;2023-06-27;50;10;Blog1
+2;Summer Fashion Trends;Discover the hottest fashion trends for the summer season.;2023-06-27;100;20;Blog2\n3;Must-Have Accessories;10 must-have accessories for the upcoming season;2023-06-27;100;20;Blog2"}
+```
+Output ONLY the json contents for the csv files and try to be as accurate as possible.    
+
+
+
+----------Response:----------
+```json
+{"AppleProducts.csv":"productID;name;price;description;availability\nAP001;iPhone 14;799.99;The latest iPhone with A15 Bionic chip and advanced camera system.;instock\nAP002;MacBook Air;999.99;Lightweight laptop with M1 chip and 18-hour battery life.;instock\nAP003;iPad Pro;1099.99;High-performance tablet with Liquid Retina display and M1 chip.;outofstock\nAP004;Apple Watch Series 7;399.99;Smartwatch with larger display and advanced health features.;instock\nAP005;AirPods Pro;249.99;Noise-cancelling wireless earbuds with spatial audio.;outofstock","ShoppingCarts.csv":"cartID;productList;totalPrice;quantity;appleProducts_productID\nCART001;iPhone 14, MacBook Air;1799.98;2;AP001\nCART002;iPad Pro;1099.99;1;AP003\nCART003;Apple Watch Series 7, AirPods Pro;649.98;2;AP004\nCART004;MacBook Air, iPad Pro;2099.98;2;AP002\nCART005;iPhone 14, Apple Watch Series 7;1199.98;2;AP001\nCART006;AirPods Pro;249.99;1;AP005\nCART007;iPhone 14, MacBook Air, Apple Watch Series 7;2199.97;3;AP001"}
+```
+2024-11-12T12:49:01.491Z [info] 5/8: Initializing CAP project
+2024-11-12T12:49:02.391Z [info] 6/8: Copying files to CAP project
+2024-11-12T12:49:02.898Z [info] 7/8: Generating applications
+2024-11-12T12:49:39.624Z [info] 8/8: Installing node module dependencies

@@ -1,0 +1,168 @@
+{
+    "_version": "1.65.0",
+    "sap.app": {
+        "id": "applecartapp",
+        "type": "application",
+        "i18n": "i18n/i18n.properties",
+        "applicationVersion": {
+            "version": "0.0.1"
+        },
+        "title": "{{appTitle}}",
+        "description": "{{appDescription}}",
+        "resources": "resources.json",
+        "sourceTemplate": {
+            "id": "@sap/generator-fiori:lrop",
+            "version": "1.15.4",
+            "toolsId": "ea1796c4-096f-4af9-988c-f0f53dc23fc1"
+        },
+        "dataSources": {
+            "mainService": {
+                "uri": "/odata/v4/apple-cart-srv/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "odataVersion": "4.0"
+                }
+            }
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "icons": {
+            "icon": "",
+            "favIcon": "",
+            "phone": "",
+            "phone@2": "",
+            "tablet": "",
+            "tablet@2": ""
+        },
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.ui5": {
+        "flexEnabled": true,
+        "dependencies": {
+            "minUI5Version": "1.129.0",
+            "libs": {
+                "sap.m": {},
+                "sap.ui.core": {},
+                "sap.fe.templates": {}
+            }
+        },
+        "contentDensities": {
+            "compact": true,
+            "cozy": true
+        },
+        "models": {
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "applecartapp.i18n.i18n"
+                }
+            },
+            "": {
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "operationMode": "Server",
+                    "autoExpandSelect": true,
+                    "earlyRequests": true
+                }
+            },
+            "@i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "uri": "i18n/i18n.properties"
+            }
+        },
+        "resources": {
+            "css": []
+        },
+        "routing": {
+            "config": {},
+            "routes": [
+                {
+                    "pattern": ":?query:",
+                    "name": "AppleProductsList",
+                    "target": "AppleProductsList"
+                },
+                {
+                    "pattern": "AppleProducts({key}):?query:",
+                    "name": "AppleProductsObjectPage",
+                    "target": "AppleProductsObjectPage"
+                },
+                {
+                    "pattern": "AppleProducts({key})/ShoppingCarts({key2}):?query:",
+                    "name": "ShoppingCartsObjectPage",
+                    "target": "ShoppingCartsObjectPage"
+                }
+            ],
+            "targets": {
+                "AppleProductsList": {
+                    "type": "Component",
+                    "id": "AppleProductsList",
+                    "name": "sap.fe.templates.ListReport",
+                    "options": {
+                        "settings": {
+                            "contextPath": "/AppleProducts",
+                            "variantManagement": "Page",
+                            "initialLoad": "Enabled",
+                            "views": {
+                                "paths": [
+                                    {
+                                        "key": "tab1",
+                                        "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#AppleProductsTable"
+                                    },
+                                    {
+                                        "key": "tab2",
+                                        "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#ShoppingCartSummary"
+                                    }
+                                ]
+                            },
+                            "navigation": {
+                                "AppleProducts": {
+                                    "detail": {
+                                        "route": "AppleProductsObjectPage"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "AppleProductsObjectPage": {
+                    "type": "Component",
+                    "id": "AppleProductsObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "contextPath": "/AppleProducts",
+                            "navigation": {
+                                "ShoppingCarts": {
+                                    "detail": {
+                                        "route": "ShoppingCartsObjectPage"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "ShoppingCartsObjectPage": {
+                    "type": "Component",
+                    "id": "ShoppingCartsObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "contextPath": "/AppleProducts/ShoppingCarts"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "sap.fiori": {
+        "registrationIds": [],
+        "archeType": "transactional"
+    }
+}
